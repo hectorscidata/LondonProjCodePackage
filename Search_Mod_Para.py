@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-import LondonProject.Pipeline_Processing as pp
-import LondonProject.bilbio_func_class as bb
 import scipy.stats as stats
 from lightgbm import LGBMRegressor
 from sklearn.ensemble import GradientBoostingRegressor
@@ -13,9 +11,11 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error, accuracy_score, classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
-import joblib
 import shap
 from lime.lime_tabular import LimeTabularExplainer
+
+import LondonProject.Pipeline_Processing as pp
+
 
 def target_classif(df, VarToCat, cat=None):
     if cat is None:
@@ -243,49 +243,3 @@ def plot_explain_class(s2, mod_classif, iloc_number=2249):
     plt.show()
 
 
-#load csv
-
-#df1 = pp.build_training_data_set(bb.datas_direc,bb.list_of_file,
-#                         fire_only=True, max_num_call=2, pump_order_max=2, minturnout=10, mintravel=10,
-#                         minattendance=30, max_speed=90, max_dist=12, min_dist=0.3, drop_grenfell=True,
-#                            maxturnout=180, frm_date='2015-12-31')
-df = pd.read_csv(bb.datas_direc + "\\clean_fire_data_set3.csv", sep=';', index_col=0)
-df.info()
-
-#initialisation des données entrainements; test à partir du dataframe df
-# choix de la variable TravelTimeSeconds ou AttendanceTimeSeconds; et choix du nmbre de classes pour la classification
-s = SearchModParaReg(df, y_var='TravelTimeSeconds')
-classif2 = {'var': 'AttendanceTimeSeconds', 'cat': [288]}
-s2 = SearchModParaClassif(df, classif={'var': 'TravelTimeSeconds', 'cat': [210]})
-
-reg = list(s.regresseur.keys())[0]
-s2.classif.keys()
-classif = list(s2.classif.keys())[0]
-directory = bb.datas_direc +'\\'
-#Execution du GreadSerach et sauvegarde des données lgbm, xgb ou gbr
-try:
-    para_reg = joblib.load(directory + f'para_{reg}_reg_{s.y_var}.pkl')
-    mod_reg = joblib.load(directory + f'mod_{reg}_reg_{s.y_var}.pkl')
-except:
-    print(f"Paramètre du modele  {reg} pour la variable {s.y_var} non sauvegardé, patience on les calculs")
-    para_reg, mod_reg = s.search_par(reg)
-    joblib.dump(para_reg, directory + f'para_{reg}_reg_{s.y_var}.pkl')
-    joblib.dump(mod_reg, directory + f'mod_{reg}_reg_{s.y_var}.pkl')
-
-try:
-    para_classif = joblib.load(directory + f'para_{classif}_classif_{s.y_var}.pkl')
-    mod_classif = joblib.load(directory + f'mod_{classif}_classif_{s.y_var}.pkl')
-except:
-    print(f"Paramètre du modele  {classif} pour la variable {s.y_var} non sauvegardé, patience on les calculs")
-    para_classif, mod_classif = s2.search_par(classif)
-    joblib.dump(para_classif, directory + f'para_{classif}_classif_{s.y_var}.pkl')
-    joblib.dump(mod_classif, directory +f'mod_{classif}_classif_{s.y_var}.pkl')
-
-print_mod_info(s, mod_reg, para_reg, True)
-print_mod_info(s2, mod_classif, para_classif, False)
-print_mod_prediction(s, mod_reg, para_reg, regression=True, iloc_number=2249)
-print_mod_prediction(s2, mod_classif, para_classif, regression=False, iloc_number=2249)
-
-plot_best_reg(s, mod_reg, para_reg, reg)
-plot_best_class_explainer(s2, mod_classif)
-plot_explain_class(s2, mod_classif,  iloc_number=7249)
