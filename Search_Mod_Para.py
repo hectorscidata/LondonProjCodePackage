@@ -240,9 +240,10 @@ def plot_explain_class(s2, mod_classif, iloc_number=2249, jupyter=True):
 
     # 5. Affichage textuel
     print("Classe prédite :", [mod_classif.predict([s2.X_test.iloc[i]])[0]])
-    exp.show_in_notebook(show_table=True)
     if not jupyter:
-        fig = exp.as_pyplot_figure()
-        plt.show()
+        exp.show_in_notebook(show_table=True)
+
+    fig = exp.as_pyplot_figure()
+    plt.show()
 
 
