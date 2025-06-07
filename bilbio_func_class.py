@@ -1,6 +1,3 @@
-"""Importation des données xlsx et définition des fonctions de claculs de distance et
-de transformation de coordonnées"""
-
 import pandas as pd
 import openpyxl
 import csv
@@ -21,12 +18,10 @@ from pyproj import Transformer
 """ https://data.london.gov.uk/dataset/london-fire-brigade-mobilisation-records"""
 
 
-datas_direc = r'C:\Python\LondonProject\LondonDatas'
+datas_direc = r'E:\Python\Projects\pythonProject\LondonDatas'
 list_of_file = ['\\LFB Incident data from 2018 - November 2024', '\\LFB Incident data from 2009 - 2017',
                 '\\LFB Mobilisation data 2021 - 2024', '\\LFB Mobilisation data from 2015 - 2020',
                 '\\LFB Mobilisation data from January 2009 - 2014']
-datas_store = datas_direc + """\\LFB Incident data from 2018 - November 2024.xlsx"""
-
 
 #pas discriminant ou missing
 incident_col_to_drop = ['FRS','Easting_m','Northing_m','FRS','Postcode_full', 'Notional Cost (£)']
@@ -56,7 +51,6 @@ def xlsx_to_csv(directory, files_to_convert):
         for row in sh:
            c.writerow([cell.value for cell in row])
 
-
 def convert_datas_to_csv(directory, files_to_convert):
     for ff in files_to_convert:
         if not ff.replace('\\', '') + '.csv' in os.listdir(directory):
@@ -74,7 +68,7 @@ def haversine_dist(source, target):
     return c * r
 
 class DatasQuality:
-    #créée les fonctions d'examen d'un pd dataframe en data_quality
+    #crée les fonctions d'examen d'un pd dataframe en data_quality
 
     def __init__(self, datas, metadatas=None):
         if type(datas) is str:
@@ -107,7 +101,7 @@ class DatasQuality:
     def drop_col(self, col_to_drop):
         return self.datas.drop(col_to_drop, axis=1, inplace=True)
 
-#from pyproj constant to calculate from English to international coordianate
+#from pyproj constant to calculate from English to international coordinate
 #bng = pyproj.Proj(init='epsg:27700')
 #wgs84 = pyproj.Proj(init='epsg:4326')
 
@@ -136,13 +130,13 @@ def rounded_easting_to_lat_lon(df_inc):
 
     return df_inc.drop(['Easting_rounded', 'Northing_rounded', 'roundedLat', 'roundedLon'], axis=1)
 
-def load_all_raw_incident_datas():
+def load_all_raw_incident_datas(datas_direc,list_of_file):
     # load excel datas
     dd_incident = DatasQuality(datas_direc + list_of_file[0] + '.csv', 'Metadata')
     dd_incident2 = DatasQuality(datas_direc + list_of_file[1] + '.csv', 'Metadata')
     return dd_incident.concat(dd_incident2)
 
-def load_all_raw_mobilisation_datas():
+def load_all_raw_mobilisation_datas(datas_direc,list_of_file ):
     dd_mob = DatasQuality(datas_direc + list_of_file[2] + '.csv', 'Mobilisations Metadata')
     dd_mob2 = DatasQuality(datas_direc + list_of_file[3] + '.csv', 'Mobilisations Metadata')
     dd_mob3 = DatasQuality(datas_direc + list_of_file[4] + '.csv', 'Mobilisations Metadata')
@@ -150,15 +144,15 @@ def load_all_raw_mobilisation_datas():
     dd_mob = dd_mob.concat(dd_mob2)
     return dd_mob.concat(dd_mob3)
 
-def load_incident_datas(frm_date='2015-12-31', grenfell_drop = True):
+def load_incident_datas(datas_direc,list_of_file,frm_date='2015-12-31', grenfell_drop = True):
 
     #recup datas dans un df
-    df = load_all_raw_incident_datas().datas
+    df = load_all_raw_incident_datas(datas_direc,list_of_file).datas
 
     #drop des colonnes
     df = df.drop(incident_col_to_drop, axis=1)
     # passage de la date en date_time
-    df['DateOfCall'] = pd.to_datetime(df['DateOfCall'])
+    df['DateOfCall'] = pd.to_datetime(df['DateOfCall'], format='mixed')
     #selection de la satrt_date
     df = df[df.DateOfCall > pd.to_datetime(frm_date)]
     if grenfell_drop:
@@ -177,9 +171,9 @@ def load_incident_datas(frm_date='2015-12-31', grenfell_drop = True):
     df.drop(['SpecialServiceType', 'StopCodeDescription'], axis=1, inplace=True)
     return df
 
-def load_mobilisation_datas():
+def load_mobilisation_datas(datas_direc,list_of_file):
     # recup datas dans un df
-    df = load_all_raw_mobilisation_datas().datas
+    df = load_all_raw_mobilisation_datas(datas_direc,list_of_file).datas
     # drop des colonnes
     df = df.drop(mobilsation_col_to_drop, axis=1)
 
@@ -204,7 +198,7 @@ def load_mobilisation_datas():
 
     return df
 
-def load_station():
+def load_station(datas_direc):
     stations = pd.read_csv(datas_direc + '\\stations.csv')
     stations['borough'] = stations.borough.str.replace('&nbsp;', '').str.replace('<br>', '')
     return stations[['name', 'latitude', 'longitude', 'borough']]
