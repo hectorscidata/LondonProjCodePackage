@@ -197,7 +197,7 @@ def plot_best_reg(s, mod, para, reg):
     #axes[2, 1].set_tight_layout()
 
 
-def print_mod_prediction(s, mod, para, regression=True, iloc_number=2249):
+def print_mod_prediction(s, mod, reg=True, iloc_number=2249):
     single_sample = pd.DataFrame(s.X_test.iloc[iloc_number:iloc_number + 1])
     predicted_class = mod.predict(single_sample)
     inter = s.datas[s.datas.index == single_sample.index[0]]
@@ -212,20 +212,22 @@ def print_mod_prediction(s, mod, para, regression=True, iloc_number=2249):
               "Classe prédite :", predicted_class[0])
 
 
-def plot_best_class_explainer(s2, mod_classif):
+def plot_best_class_explainer(s2, mod_classif, jupyter=True):
     # 3. Création d'un explainer SHAP
     explainer = shap.TreeExplainer(mod_classif)
     shap_values = explainer.shap_values(s2.X_test)
-    shap.summary_plot(shap_values, s2.X_test, plot_type="bar")
     # 4. Visualisation de l’explication pour un échantillon
-    shap.initjs()
-    try:
-        shap.force_plot(explainer.expected_value[0], shap_values[0][0], s2.X_test.iloc[0])
-    except:
-        shap.force_plot(explainer.expected_value, shap_values[0], s2.X_test.iloc[0])
+    if not jupyter:
+        shap.summary_plot(shap_values, s2.X_test, plot_type="bar")
+    else:
+        shap.initjs()
+        try:
+            shap.force_plot(explainer.expected_value[0], shap_values[0][0], s2.X_test.iloc[0])
+        except:
+            shap.force_plot(explainer.expected_value, shap_values[0], s2.X_test.iloc[0])
 
 
-def plot_explain_class(s2, mod_classif, iloc_number=2249):
+def plot_explain_class(s2, mod_classif, iloc_number=2249, jupyter=True):
     # 3. Initialiser l'explainer LIME
     explainer = LimeTabularExplainer(s2.X_train,
                                      feature_names=mod_classif.feature_name_,
@@ -239,7 +241,8 @@ def plot_explain_class(s2, mod_classif, iloc_number=2249):
     # 5. Affichage textuel
     print("Classe prédite :", [mod_classif.predict([s2.X_test.iloc[i]])[0]])
     exp.show_in_notebook(show_table=True)
-    fig = exp.as_pyplot_figure()
-    plt.show()
+    if not jupyter:
+        fig = exp.as_pyplot_figure()
+        plt.show()
 
 
