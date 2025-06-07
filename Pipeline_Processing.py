@@ -11,12 +11,12 @@
     On fera un filtre :
         - distance trop petite
         - vitesse incohérente
-        - Time of Call de inicident - Time of arrival de mob pas coherent avec tempMob + temps deplacement même après 3600
+        - Time of Call de inicdent - Time of arrival de mob pas coherent avec tempMob + temps deplacement même après 3600
         """
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-import bilbio_func_class as te
+import LondonProject.bilbio_func_class as te
 import holidays
 
 # Preprocessing Hypothesis :
@@ -28,10 +28,11 @@ import holidays
 # limit incohérence entre heure d'appel d'incident + temps mob+ temps travel = timearrived +ERREUR
 
 
-def load_incident_training_datas(fire_only=True, max_num_call=2, frm_date='2015-12-31', drop_grenfell=True):
+def load_incident_training_datas(datas_direc,list_of_file,fire_only=True, max_num_call=2, frm_date='2015-12-31',
+                                 drop_grenfell=True):
     # Load_datas_incident from '2015-12-31', elimine col inutilue, retraite les colonnes entre elles
     col_to_drop = []
-    df = te.load_incident_datas(frm_date, drop_grenfell)  # 1 Million
+    df = te.load_incident_datas(datas_direc,list_of_file,frm_date, drop_grenfell)  # 1 Million
     nb_raw = len(df)
     """rappel propercase = Borough_Name et Inc_geo_WarName =Ward sous zone du borough"""
     # Filtrage
@@ -73,9 +74,10 @@ def load_incident_training_datas(fire_only=True, max_num_call=2, frm_date='2015-
     return df_fire, col_to_drop
 
 
-def load_mob_training_datas(pump_order_max=2, minturnout=10, mintravel=10, minattendance=30, maxturnout=180):
+def load_mob_training_datas(datas_direc,list_of_file,pump_order_max=2, minturnout=10, mintravel=10,
+                            minattendance=30, maxturnout=180):
     # Load des mob datas avec incident_number en index et colonne drop et filtre sur delay et homestation
-    mob_datas = te.load_mobilisation_datas()
+    mob_datas = te.load_mobilisation_datas(datas_direc,list_of_file,)
     nb_mob = len(mob_datas)
 
     # PumpOrder = 1 ou 0 si pas numéro 1
@@ -107,7 +109,8 @@ def merge_incident_mob(incident_datas, mob_datas, error=15):
     # on fait ensuite un filtre sur le temps : incoherence entre heure d'appel t heure de mobilised
     # suggère des erreurs de prise de note même après correction des 3600 pour 1 heure
     df = df.assign(TimeCheck=(df.DateAndTimeMobilised - pd.to_datetime(df['DateOfCall'].dt.date.astype(str) + ' '
-                                                                       + df['TimeOfCall'])).astype('timedelta64[s]'))
+                                                                       + df['TimeOfCall'])).astype('timedelta64[s]').dt.total_seconds())
+
     df['TimeCheck'] = df['TimeCheck'].apply(lambda x: x if x >= 0 else np.abs(x + 3600))
     anomalie2 = df[df.TimeCheck > error]
 
@@ -117,17 +120,17 @@ def merge_incident_mob(incident_datas, mob_datas, error=15):
     # on a l'heure d'appel, les temps en seconds de l'intervention et on a déjà vérifié la cohérence
     df_to_drop = ['DateAndTimeMobilised', 'DateAndTimeMobile', 'DateAndTimeArrived', 'TimeCheck']
 
-    #df['incident_number'] = df.index
+    # df['incident_number'] = df.index
     df = df.set_index(['ResourceMobilisationId'])
 
     return df, df_to_drop, anomalie1, anomalie2
 
 
-def merge_stations(incident_mob, maxspeed=90, max_dist=12, min_dist=0.3):
+def merge_stations(datas_direc, incident_mob, maxspeed=90, max_dist=12, min_dist=0.3):
     # on merge avec les stations sur le DeployedFromStation de mobilisation
     # on filtre les données invraissemblalbles ou extreme pour l'apprentissage
     # les distances sont KM et les vitesses en KM/H
-    stations = te.load_station()
+    stations = te.load_station(datas_direc)
     # nb_station_by_borough = stations[['borough', 'name']].groupby(['borough']).count()
     incident_mob['ResourceMobilisationId'] = incident_mob.index
     df = incident_mob.merge(stations, left_on='DeployedFromStation_Name', right_on='name')
@@ -143,8 +146,6 @@ def merge_stations(incident_mob, maxspeed=90, max_dist=12, min_dist=0.3):
 
     suspect = df[(df.speed > maxspeed) | (df.deployed_haversine_dist > max_dist)
                  | (df.deployed_haversine_dist < min_dist)]  # 42K enregistrement pas bcp surement une erreur
-
-
 
     # une fois les distances calculées et le pb du choix de la station trop loin ; pas le bon borough??
     df_to_drop += ['Latitude', 'Longitude', 'latitude', 'longitude', 'name']
@@ -194,20 +195,22 @@ def build_date_hours_cat(df, col_d='DateOfCall', col_h='HourOfCall'):
     return df
 
 
-def build_training_data_set(fire_only=True, max_num_call=2, pump_order_max=2, minturnout=10, mintravel=10,
-                            minattendance=30, max_speed=90, max_dist=12, min_dist=0.3, drop_grenfell=True,
+def build_training_data_set(datas_direc,list_of_file,fire_only=True, max_num_call=2, pump_order_max=2, minturnout=10,
+                            mintravel=10,minattendance=30, max_speed=90, max_dist=12, min_dist=0.3, drop_grenfell=True,
                             maxturnout=180, frm_date='2015-12-31'):
     # Time in Seconds, distance ein KM and speed in Kph
 
     # construction des datasets à parit des données TXT en appliquant les paramètres de la function
-    print("Loading & Friltering Incidents datas")
-    df_inc, c_inc_drop = load_incident_training_datas(fire_only, max_num_call, frm_date, drop_grenfell)
+    print("Loading & Filtering Incidents datas")
+    df_inc, c_inc_drop = load_incident_training_datas(datas_direc,list_of_file,fire_only, max_num_call,
+                                                      frm_date, drop_grenfell)
     print("Loading and Filtering Mobilisations datas")
-    df_mob, time_outlayer = load_mob_training_datas(pump_order_max, minturnout, mintravel, minattendance, maxturnout)
+    df_mob, time_outlayer = load_mob_training_datas(datas_direc,list_of_file,
+                                                    pump_order_max, minturnout, mintravel, minattendance, maxturnout)
     print("Merging Incidents & Mobilisations, checking for artefacts")
     df_all, c_merge_to_drop, pump_an, timecheck = merge_incident_mob(df_inc, df_mob)
     print("Merging with Stations, Calculating distance and Filtering Outlayers")
-    df, c_df_to_drop, suspect = merge_stations(df_all, max_speed, max_dist, min_dist)
+    df, c_df_to_drop, suspect = merge_stations(datas_direc, df_all, max_speed, max_dist, min_dist)
     df = df[~ df.index.isin(suspect.index)]
 
     # attendance = travel + mobilised donc compo linéaire
@@ -219,15 +222,15 @@ def build_training_data_set(fire_only=True, max_num_call=2, pump_order_max=2, mi
     df['DateOfCall'] = pd.to_datetime(df['DateOfCall'])
     df['MonthOfCall'] = df['DateOfCall'].dt.month
     df['WeekDayOfCall'] = df['DateOfCall'].dt.dayofweek
-    #on ajoute le Timeofcall à dateof call pour synthetiser la donnée
+    # on ajoute le Timeofcall à dateof call pour synthetiser la donnée
     df['DateOfCall'] = pd.to_datetime(df['DateOfCall'].astype(str) + ' ' + df['TimeOfCall'].astype(str))
-    #tri du dataset par date/heure pour la chrono
+    # tri du dataset par date/heure pour la chrono
     df = df.sort_values(by=['DateOfCall'], ascending=True)
 
-    #creation des categories de temps: saison, week_end et moment de la journée
+    # creation des categories de temps: saison, week_end et moment de la journée
     df = build_date_hours_cat(df)
-    #suppresion des données permettant de faire les cat tempo sachant que ces 3 là trop nombreuses
-    c_drop +=['MonthOfCall', 'WeekDayOfCall', 'HourOfCall']
+    # suppresion des données permettant de faire les cat tempo sachant que ces 3 là trop nombreuses
+    c_drop += ['MonthOfCall', 'WeekDayOfCall', 'HourOfCall']
 
     df = df.drop(c_drop, axis=1)
     # reorg colonne
@@ -239,9 +242,9 @@ def build_training_data_set(fire_only=True, max_num_call=2, pump_order_max=2, mi
         col_order.remove('NumCalls')
     df = df.drop_duplicates()
     return df[col_order]
-#df.to_csv("clean_fire_data_set3.csv", sep=";")
-# to do : date confinement covid et date jour ferie genre paques : change day of week to sunday ?
 
+
+#df.to_csv("E:\Python\Projects\pythonProject\LondonDatas\clean_fire_data_set3.csv", sep=';')
 
 def build_xtrain_from_clean_dataset(dataset, y_var='TravelTimeSeconds', covid_out=True,
                                     train_size=0.8, scale_datas=True):
