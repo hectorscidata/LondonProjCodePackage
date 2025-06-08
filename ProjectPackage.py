@@ -1,13 +1,14 @@
 import pandas as pd
 import LondonProject.bilbio_func_class as bb
 import LondonProject.Search_Mod_Para as sm
+import LondonProject.cartes_incident_Stations as cm
 import joblib
 
 directory = bb.datas_direc +'\\'
 
 #load csv
 
-#df1 = pp.build_training_data_set(bb.datas_direc,bb.list_of_file,
+#df1,df_cord = pp.build_training_data_set(bb.datas_direc,bb.list_of_file,
 #                         fire_only=True, max_num_call=2, pump_order_max=2, minturnout=10, mintravel=10,
 #                         minattendance=30, max_speed=90, max_dist=12, min_dist=0.3, drop_grenfell=True,
 #                            maxturnout=180, frm_date='2015-12-31')
@@ -50,7 +51,11 @@ sm.print_mod_prediction(s2, mod_classif,reg=False, iloc_number=2249)
 
 sm.plot_best_reg(s, mod_reg, para_reg, reg)
 sm.plot_best_class_explainer(s2, mod_classif, False)
-sm.plot_explain_class(s2, mod_classif,  iloc_number=7249, False)
+sm.plot_explain_class(s2, mod_classif,  iloc_number=7249, jupyter=False)
 
 df_cord = pd.read_csv(bb.datas_direc + "\\clean_fire_data_set3_cord.csv", sep=';', index_col=0)
-dd = s2.datas[['TravelTimeSeconds']].merge(df_cord, right_index=True, left_index=True)
+dd = s2.datas[['TravelTimeSeconds','DeployedFromStation_Name', 'PropertyCategory']
+                ].merge(df_cord, right_index=True, left_index=True)
+
+m = cm.build_maps(dd,'Chelsea','TravelTimeSeconds')
+m.show_in_browser()
