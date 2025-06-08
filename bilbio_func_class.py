@@ -120,8 +120,8 @@ def rounded_easting_to_lat_lon(df_inc):
                                                                   df_inc['Northing_rounded'].tolist())
 
     # les lat/long à 0 sont mis à null
-    df_inc['Latitude'].replace(0, np.nan, inplace=True)
-    df_inc['Longitude'].replace(0, np.nan, inplace=True)
+    df_inc.loc[df_inc['Latitude'] == 0, 'Latitude'] = np.nan
+    df_inc.loc[df_inc['Longitude'] == 0, 'Latitude'] = np.nan
     # une colonne is_rouned est ajoutée
     df_inc['IsRounded'] = df_inc.Latitude.isnull()
     # les null sont remplacés par les lat/lon calculées à partir des rounded

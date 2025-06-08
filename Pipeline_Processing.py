@@ -214,6 +214,7 @@ def build_training_data_set(datas_direc,list_of_file,fire_only=True, max_num_cal
     df = df[~ df.index.isin(suspect.index)]
 
     # attendance = travel + mobilised donc compo linéaire
+
     c_drop = c_inc_drop + c_merge_to_drop + c_df_to_drop + ['AttendanceTimeSeconds']
     c_drop += ['speed']  # ces données ne seront connues qu'après l'intervention
     c_drop += ['TimeOfCall', 'CalYear']  # on a l'heure et on a fait les verif de cohérences entre incident et Mob
@@ -232,6 +233,9 @@ def build_training_data_set(datas_direc,list_of_file,fire_only=True, max_num_cal
     # suppresion des données permettant de faire les cat tempo sachant que ces 3 là trop nombreuses
     c_drop += ['MonthOfCall', 'WeekDayOfCall', 'HourOfCall']
 
+    #sauvegarde des corrdonnées pour faire des plots
+    df_cord = df[['Latitude', 'Longitude', 'latitude', 'longitude']]
+
     df = df.drop(c_drop, axis=1)
     # reorg colonne
     col_order = ['DateOfCall', 'season', 'is_week_end', 'day_moment',
@@ -241,10 +245,11 @@ def build_training_data_set(datas_direc,list_of_file,fire_only=True, max_num_cal
     if not 'NumCalls' in df.columns:
         col_order.remove('NumCalls')
     df = df.drop_duplicates()
-    return df[col_order]
+    return df[col_order], df_cord
 
 
 #df.to_csv("E:\Python\Projects\pythonProject\LondonDatas\clean_fire_data_set3.csv", sep=';')
+#df_cord.to_csv("E:\Python\Projects\pythonProject\LondonDatas\clean_fire_data_set3_cord.csv", sep=';')
 
 def build_xtrain_from_clean_dataset(dataset, y_var='TravelTimeSeconds', covid_out=True,
                                     train_size=0.8, scale_datas=True):
@@ -282,7 +287,9 @@ def build_xtrain_from_clean_dataset(dataset, y_var='TravelTimeSeconds', covid_ou
     if scale_datas:
         scaler = StandardScaler()
         col_norm = list(datas.drop([y_var], axis=1).select_dtypes('number').columns)
-        X_train[col_norm] = pd.DataFrame(scaler.fit_transform(X_train[col_norm]), index=X_train.index)
-        X_test[col_norm] = pd.DataFrame(scaler.transform(X_test[col_norm]), index=X_test.index)
+        #X_train[col_norm] = pd.DataFrame(scaler.fit_transform(X_train[col_norm]), index=X_train.index)
+        X_train.loc[:, col_norm] = scaler.fit_transform(X_train[col_norm])
+        X_test.loc[:, col_norm] = scaler.fit_transform(X_test[col_norm])
 
     return X_train, y_train, X_test, y_test
+

@@ -51,3 +51,6 @@ sm.print_mod_prediction(s2, mod_classif,reg=False, iloc_number=2249)
 sm.plot_best_reg(s, mod_reg, para_reg, reg)
 sm.plot_best_class_explainer(s2, mod_classif, False)
 sm.plot_explain_class(s2, mod_classif,  iloc_number=7249, False)
+
+df_cord = pd.read_csv(bb.datas_direc + "\\clean_fire_data_set3_cord.csv", sep=';', index_col=0)
+dd = s2.datas[['TravelTimeSeconds']].merge(df_cord, right_index=True, left_index=True)
