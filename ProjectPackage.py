@@ -1,17 +1,19 @@
 import pandas as pd
-import LondonProject.Pipeline_Processing as pp
-import LondonProject.bilbio_func_class as bb
-import LondonProject.Search_Mod_Para as sm
-import LondonProject.cartes_incident_Stations as cm
 import joblib
 
-directory = bb.datas_direc +'\\'
+import Pipeline_Processing as pp
+import bilbio_func_class as bb
+import Search_Mod_Para as sm
+import cartes_incident_Stations as cm
+
+# directory où se trouvent les données sources xslx, les csv et les pickles
+directory = ''
 
 #load csv
 try:
-    df = pd.read_csv(bb.datas_direc + "\\clean_fire_data_set3.csv", sep=';', index_col=0)
+    df = pd.read_csv(directory + "\\clean_fire_data_set3.csv", sep=';', index_col=0)
 except:
-    df,df_cord = pp.build_training_data_set(bb.datas_direc,bb.list_of_file,
+    df, df_cord = pp.build_training_data_set(directory,bb.list_of_file,
                          fire_only=True, max_num_call=2, pump_order_max=2, minturnout=10, mintravel=10,
                          minattendance=30, max_speed=90, max_dist=12, min_dist=0.3, drop_grenfell=True,
                             maxturnout=180, frm_date='2015-12-31')
