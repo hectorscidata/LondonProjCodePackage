@@ -7,8 +7,10 @@ from sklearn.preprocessing import StandardScaler
 from xgboost import XGBRegressor
 from lightgbm import LGBMClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error, accuracy_score, classification_report, confusion_matrix
+from sklearn.model_selection import GridSearchCV,cross_val_score, RandomizedSearchCV
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error
+from sklearn.metrics import make_scorer, f1_score, accuracy_score, classification_report, confusion_matrix,roc_auc_score
+from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
 import seaborn as sns
 import shap
@@ -143,6 +145,15 @@ class SearchModParaClassif:
     def cm(self, mod):
         return pd.crosstab(self.y_test, self.y_pred(mod), rownames=['Classe réelle'], colnames=['Classe prédite'])
 
+    def f1_scores(self, class_mod='lgbm'):
+        f1_scorer = make_scorer(f1_score, average="weighted")
+        return cross_val_score(self.classif[class_mod][0], self.X_train, self.y_train, cv=5, scoring='f1_weighted')
+
+    def roc_auc_scores(self, class_mod='lgbm'):
+        le = LabelEncoder()
+        y_encoded = le.fit_transform(self.y_train)
+        return cross_val_score(self.classif[class_mod][0], self.X_train, y_encoded,verbose=0, cv=5, scoring="roc_auc")
+
 
 def print_mod_info(s, mod, para, regression=True):
     print(s.X_train.isnull().sum().sum(), s.y_train.isnull().sum())
@@ -157,8 +168,12 @@ def print_mod_info(s, mod, para, regression=True):
         print(f"RMSE : {s.rmse(mod):.3f}")
         print(f"MAE : {s.mae(mod):.3f}")
     else:
+        f1_scores = s.f1_scores(mod.__class__.__name__.strip('Classifier').lower())
+        roc_auc_scores = s.roc_auc_scores(mod.__class__.__name__.strip('Classifier').lower())
         print("Accuracy :", accuracy_score(s.y_test, s.y_pred(mod)))
         print("Rapport de classification :\n", classification_report(s.y_test, s.y_pred(mod)))
+        print(f"✅ F1-score moyen : {f1_scores.mean():.4f} ± {f1_scores.std():.4f}")
+        print(f"✅ ROC-AUC moyen : {roc_auc_scores.mean():.4f} ± {roc_auc_scores.std():.4f}")
 
 
 def plot_best_reg(s, mod, para, reg):

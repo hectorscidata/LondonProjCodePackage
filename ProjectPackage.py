@@ -8,12 +8,14 @@ import joblib
 directory = bb.datas_direc +'\\'
 
 #load csv
+try:
+    df = pd.read_csv(bb.datas_direc + "\\clean_fire_data_set3.csv", sep=';', index_col=0)
+except:
+    df,df_cord = pp.build_training_data_set(bb.datas_direc,bb.list_of_file,
+                         fire_only=True, max_num_call=2, pump_order_max=2, minturnout=10, mintravel=10,
+                         minattendance=30, max_speed=90, max_dist=12, min_dist=0.3, drop_grenfell=True,
+                            maxturnout=180, frm_date='2015-12-31')
 
-#df1,df_cord = pp.build_training_data_set(bb.datas_direc,bb.list_of_file,
-#                         fire_only=True, max_num_call=2, pump_order_max=2, minturnout=10, mintravel=10,
-#                         minattendance=30, max_speed=90, max_dist=12, min_dist=0.3, drop_grenfell=True,
-#                            maxturnout=180, frm_date='2015-12-31')
-df = pd.read_csv(bb.datas_direc + "\\clean_fire_data_set3.csv", sep=';', index_col=0)
 df.info()
 
 #initialisation des données entrainements; test à partir du dataframe df
