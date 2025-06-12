@@ -48,7 +48,7 @@ def build_maps(dd, borough='Chelsea', y_var='TravelTimeSeconds'):
 
 
     if 'PropertyCategory' in dd.columns:
-        data_inc = dd[dd.DeployedFromStation_Name=='Chelsea'][
+        data_inc = dd[dd.DeployedFromStation_Name==borough][
                         [y_var,'PropertyCategory','Longitude', 'Latitude']]
 
         def add_marker(row):
